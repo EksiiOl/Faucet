@@ -4,53 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>USDC Faucet</title>
-    <!-- Подключение библиотеки ethers.js -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="ethers.umd.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px #000;
         }
         .button {
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 15px 30px;
+            font-size: 18px;
             color: white;
-            background-color: #007bff;
+            background-color: #ff5722;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.3s ease;
         }
         .button:hover {
-            background-color: #0056b3;
+            background-color: #e64a19;
         }
         .message {
             margin-top: 20px;
             font-size: 16px;
         }
+        .counter {
+            font-size: 1.5em;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
     <h1>USDC Faucet</h1>
-    <!-- Кнопка для подключения кошелька -->
     <button class="button" id="connectWalletButton">Connect Wallet</button>
     <p class="message" id="walletMessage"></p>
+    <div class="counter">
+        <span>USDC remaining in faucet: </span><span id="faucetBalance">Loading...</span>
+    </div>
     <p>Click the button below to claim your USDC tokens.</p>
-    <!-- Кнопка для получения токенов -->
-    <button class="button" id="claimButton" disabled>Claim USDC</button>
+    <button class="button" id="claimButton">Claim USDC</button>
     <p class="message" id="message"></p>
 
     <script>
-        // Адрес вашего контракта
-        const CONTRACT_ADDRESS = "0xe97B99E51c76fED789436eBD0e4198D744547E95";
-        
-        // ABI вашего контракта
+        const CONTRACT_ADDRESS = "0xe97B9E51c76fED789436eBD0e4198D744547E95"; // Ваш адрес контракта
         const ABI = [
             {
                 "inputs": [],
                 "name": "claim",
                 "outputs": [],
                 "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getFaucetBalance",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
                 "type": "function"
             }
         ];
@@ -60,12 +77,6 @@
         // Функция подключения кошелька
         async function connectWallet() {
             try {
-                if (!window.ethereum) {
-                    document.getElementById("walletMessage").textContent = "Metamask is not installed.";
-                    return;
-                }
-
-                // Инициализация провайдера и запроса доступа к кошельку
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 signer = provider.getSigner();
@@ -73,13 +84,24 @@
 
                 const walletAddress = await signer.getAddress();
                 document.getElementById("walletMessage").textContent = `Connected: ${walletAddress}`;
-                document.getElementById("claimButton").disabled = false; // Разблокируем кнопку Claim
+                updateFaucetBalance();
             } catch (error) {
                 document.getElementById("walletMessage").textContent = "Error connecting wallet: " + error.message;
             }
         }
 
-        // Функция вызова claim
+        // Функция обновления баланса крана
+        async function updateFaucetBalance() {
+            try {
+                const balance = await contract.getFaucetBalance();
+                const formattedBalance = ethers.utils.formatUnits(balance, 6); // USDC имеет 6 десятичных знаков
+                document.getElementById("faucetBalance").textContent = `${formattedBalance} USDC`;
+            } catch (error) {
+                document.getElementById("faucetBalance").textContent = "Error fetching balance";
+            }
+        }
+
+        // Функция для вызова claim
         async function claimTokens() {
             try {
                 if (!contract) {
@@ -92,14 +114,25 @@
 
                 await tx.wait();
                 document.getElementById("message").textContent = "Claim successful!";
+                updateFaucetBalance();
             } catch (error) {
-                document.getElementById("message").textContent = "Error: " + error.message;
+                if (error.data && error.data.message.includes("Claim only once per day")) {
+                    document.getElementById("message").textContent = "Error: You have already claimed tokens today. Try again tomorrow.";
+                } else {
+                    document.getElementById("message").textContent = "Error: " + error.message;
+                }
             }
         }
 
-        // Привязка событий к кнопкам
         document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
         document.getElementById("claimButton").addEventListener("click", claimTokens);
+
+        // Инициализация баланса при загрузке
+        if (window.ethereum) {
+            connectWallet();
+        } else {
+            document.getElementById("walletMessage").textContent = "MetaMask not detected. Please install it.";
+        }
     </script>
 </body>
 </html>
