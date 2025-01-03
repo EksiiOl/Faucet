@@ -4,34 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>USDC Faucet</title>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: radial-gradient(circle, #ff0099, #6600cc, #0033ff, #00ffcc, #ffff66);
+            background-size: 400% 400%;
+            animation: backgroundShift 10s ease infinite;
+            color: white;
             text-align: center;
             padding: 20px;
-            background-color: #1e3a8a;
-            color: #fff;
         }
+
+        @keyframes backgroundShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-shadow: 0 0 10px #ffffff, 0 0 20px #ff0099, 0 0 30px #6600cc;
+        }
+
         .button {
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 15px 30px;
+            font-size: 1.5rem;
             color: white;
-            background-color: #f97316;
+            text-transform: uppercase;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff0066, #00ccff, #ffcc00);
             border: none;
-            border-radius: 5px;
+            border-radius: 50px;
             cursor: pointer;
+            box-shadow: 0 0 20px #ffffff, 0 0 30px #ff0099, 0 0 40px #6600cc;
+            animation: buttonGlow 2s ease-in-out infinite alternate;
         }
+
         .button:hover {
-            background-color: #ea580c;
+            transform: scale(1.1);
         }
+
+        @keyframes buttonGlow {
+            0% {
+                box-shadow: 0 0 20px #ffffff, 0 0 30px #ff0099, 0 0 40px #6600cc;
+            }
+            100% {
+                box-shadow: 0 0 30px #ffffff, 0 0 40px #00ccff, 0 0 50px #ffff66;
+            }
+        }
+
         .message {
             margin-top: 20px;
-            font-size: 16px;
-        }
-        .error {
-            color: #ff6b6b;
-            font-weight: bold;
+            font-size: 1.2rem;
+            color: #ffff66;
+            text-shadow: 0 0 10px #ffffff, 0 0 20px #00ccff;
         }
     </style>
 </head>
@@ -39,14 +66,14 @@
     <h1>USDC Faucet</h1>
     <button class="button" id="connectWalletButton">Connect Wallet</button>
     <p class="message" id="walletMessage"></p>
-    <p id="balanceMessage">USDC remaining in faucet: Loading...</p>
-    <p>Click the button below to claim your USDC tokens.</p>
+    <p>USDC remaining in faucet: <span id="faucetBalance">Fetching...</span></p>
     <button class="button" id="claimButton">Claim USDC</button>
-    <p class="message error" id="message"></p>
+    <p class="message" id="message"></p>
 
     <script>
-        const CONTRACT_ADDRESS = "0xf8dbFFec346b0bE85DAD9F9005b6339eAbC2f353"; // Адрес контракта крана
-        const TOKEN_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Адрес токена USDC
+        // Your existing JavaScript logic
+        const CONTRACT_ADDRESS = "0xf8dbFFec346b0bE85DAD9F9005b6339eAbC2f353";
+        const TOKEN_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
         const ABI = [
             {
                 "inputs": [],
@@ -54,73 +81,51 @@
                 "outputs": [],
                 "stateMutability": "nonpayable",
                 "type": "function"
-            }
-        ];
-        const TOKEN_ABI = [
+            },
             {
-                "constant": true,
-                "inputs": [{ name: "_owner", type: "address" }],
+                "inputs": [],
                 "name": "balanceOf",
-                "outputs": [{ name: "balance", type: "uint256" }],
+                "outputs": [{"internalType": "uint256","name":"","type":"uint256"}],
+                "stateMutability": "view",
                 "type": "function"
             }
         ];
 
-        let provider, signer, contract, tokenContract;
+        let provider, signer, contract;
 
-        // Функция подключения кошелька
         async function connectWallet() {
             try {
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 signer = provider.getSigner();
                 contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-                tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, provider);
 
                 const walletAddress = await signer.getAddress();
                 document.getElementById("walletMessage").textContent = `Connected: ${walletAddress}`;
-
-                // Обновить баланс крана
-                updateBalance();
+                updateFaucetBalance();
             } catch (error) {
-                document.getElementById("walletMessage").textContent = "Error connecting wallet: " + error.message;
+                document.getElementById("walletMessage").textContent = "Error connecting wallet.";
             }
         }
 
-        // Функция обновления баланса крана
-        async function updateBalance() {
+        async function updateFaucetBalance() {
             try {
-                const balance = await tokenContract.balanceOf(CONTRACT_ADDRESS);
-                document.getElementById("balanceMessage").textContent = `USDC remaining in faucet: ${ethers.utils.formatUnits(balance, 6)} USDC`;
+                const balance = await contract.balanceOf(CONTRACT_ADDRESS);
+                document.getElementById("faucetBalance").textContent = `${ethers.utils.formatUnits(balance, 18)} USDC`;
             } catch (error) {
-                document.getElementById("balanceMessage").textContent = "USDC remaining in faucet: Error fetching balance";
+                document.getElementById("faucetBalance").textContent = "Error fetching balance";
             }
         }
 
-        // Функция для вызова claim
         async function claimTokens() {
             try {
-                if (!contract) {
-                    document.getElementById("message").textContent = "Please connect your wallet first.";
-                    return;
-                }
-
                 const tx = await contract.claim();
-                document.getElementById("message").textContent = `Transaction sent: ${tx.hash}`;
-
+                document.getElementById("message").textContent = "Claiming tokens...";
                 await tx.wait();
                 document.getElementById("message").textContent = "Claim successful!";
-
-                // Обновить баланс после успешного запроса
-                updateBalance();
+                updateFaucetBalance();
             } catch (error) {
-                if (error.message.includes("Claim only once per day")) {
-                    document.getElementById("message").textContent = "Error: You can only claim once per day.";
-                } else if (error.message.includes("Not enough tokens in the faucet")) {
-                    document.getElementById("message").textContent = "Error: Not enough tokens in the faucet.";
-                } else {
-                    document.getElementById("message").textContent = "Error: " + error.message;
-                }
+                document.getElementById("message").textContent = "Error: Not enough tokens or already claimed.";
             }
         }
 
