@@ -7,16 +7,16 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
         body {
-            background: linear-gradient(45deg, #f72585, #7209b7, #3a0ca3, #4361ee, #4cc9f0);
-            background-size: 400% 400%;
-            animation: gradientBackground 10s ease infinite;
+            background: radial-gradient(circle, #ff0080, #8a00ff, #1e90ff, #00ffff);
+            background-size: 300% 300%;
+            animation: psychedelicBackground 6s ease infinite;
             color: #FFFFFF;
             font-family: 'Comic Sans MS', cursive, sans-serif;
             text-align: center;
             padding: 20px;
         }
 
-        @keyframes gradientBackground {
+        @keyframes psychedelicBackground {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
@@ -24,16 +24,16 @@
 
         h1 {
             font-size: 4rem;
-            text-shadow: 3px 3px 10px #000000;
-            color: #FFEA00;
+            text-shadow: 0px 0px 10px #000000, 0px 0px 20px #FFFFFF;
             margin-bottom: 20px;
+            color: #FFD700;
         }
 
         .button {
             padding: 15px 30px;
             font-size: 18px;
             color: white;
-            background: radial-gradient(circle, #f72585, #7209b7, #4cc9f0);
+            background: linear-gradient(90deg, #ff0080, #8a00ff, #1e90ff, #00ffff);
             border: none;
             border-radius: 15px;
             cursor: pointer;
@@ -41,7 +41,7 @@
         }
         .button:hover {
             transform: scale(1.1);
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.7);
         }
 
         .input {
@@ -65,10 +65,11 @@
             font-style: italic;
             text-shadow: 2px 2px 4px #000000;
             margin-top: 30px;
+            color: #FFD700;
         }
 
         a {
-            color: #FFEA00;
+            color: #00ff00;
             text-decoration: none;
             font-weight: bold;
         }
@@ -81,7 +82,7 @@
         <p class="message" id="walletMessage">Connect your wallet to get started</p>
         <p class="message" id="faucetBalance">USDC remaining in faucet: Fetching balance...</p>
         <p>Click the button below to claim your USDC tokens.</p>
-        <p>To claim, enter the secret password. Get it on our <a href="https://x.com/uaeilu" target="_blank">Twitter page</a>.</p>
+        <p>To claim, enter the secret password. Get it on our <a href="https://twitter.com/yourtwitterhandle" target="_blank">Twitter page</a>.</p>
         <input class="input" type="text" id="passwordInput" placeholder="Enter secret password">
         <button class="button" id="claimButton">Claim USDC</button>
         <p class="message" id="message"></p>
@@ -90,7 +91,7 @@
 
     <script>
         const CONTRACT_ADDRESS = "0xf8dbFFec346b0bE85DAD9F9005b6339eAbC2f353";
-        const SECRET_PASSWORD = "psychedelic2025"; // Секретный пароль, редактируйте здесь
+        const SECRET_PASSWORD = "psychedelic2025"; // Секретный пароль
         const ABI = [
             {
                 "inputs": [],
@@ -137,8 +138,16 @@
 
         async function claimTokens() {
             const enteredPassword = document.getElementById("passwordInput").value;
+            const randomResponses = [
+                "Dude, what’s wrong? Forgot the password?",
+                "Where’s your head? That’s the wrong password!",
+                "What do you think this is, the Matrix?",
+                "Take a puff, relax, and enter the password.",
+                "Nope, buddy, you messed it up again."
+            ];
             if (enteredPassword !== SECRET_PASSWORD) {
-                document.getElementById("message").textContent = "Error: Invalid password!";
+                const randomResponse = randomResponses[Math.floor(Math.random() * randomResponses.length)];
+                document.getElementById("message").textContent = randomResponse;
                 return;
             }
 
@@ -160,11 +169,10 @@
 
         function displayRandomQuote() {
             const quotes = [
-                "The only thing we have to fear is fear itself. - Franklin D. Roosevelt",
-                "War is peace. Freedom is slavery. Ignorance is strength. - George Orwell",
-                "In war, truth is the first casualty. - Aeschylus",
-                "I have not failed. I've just found 10,000 ways that won't work. - Thomas Edison",
-                "The world is governed by very different personages from what is imagined. - Benjamin Disraeli"
+                "We’re in the system and under the watchful eye of the world government.",
+                "War is peace. Freedom is slavery. Ignorance is strength. – George Orwell",
+                "Thoughts are controlled, but will that really stop us?",
+                "The Illuminati rules the world, and we’re all under hypnosis."
             ];
             const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
             document.getElementById("quote").textContent = randomQuote;
