@@ -3,67 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USDC Faucet</title>
+    <title>Psychedelic Faucet</title>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
         body {
-            background: radial-gradient(circle, #2F2B5A, #1A1A1A, #101010);
+            background: linear-gradient(45deg, #f72585, #7209b7, #3a0ca3, #4361ee, #4cc9f0);
+            background-size: 400% 400%;
+            animation: gradientBackground 10s ease infinite;
             color: #FFFFFF;
-            font-family: 'Comic Sans MS', sans-serif;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
             text-align: center;
             padding: 20px;
         }
+
+        @keyframes gradientBackground {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-size: 4rem;
+            text-shadow: 3px 3px 10px #000000;
+            color: #FFEA00;
+            margin-bottom: 20px;
+        }
+
         .button {
             padding: 15px 30px;
             font-size: 18px;
             color: white;
-            background: linear-gradient(45deg, #FF6F91, #FF9671, #FFC75F, #D65DB1, #845EC2);
+            background: radial-gradient(circle, #f72585, #7209b7, #4cc9f0);
             border: none;
             border-radius: 15px;
             cursor: pointer;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
         .button:hover {
             transform: scale(1.1);
-            box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
         }
-        h1 {
-            font-size: 3rem;
-            color: #FFC75F;
-            text-shadow: 2px 2px 6px #FF9671, 0 0 12px #D65DB1;
+
+        .input {
+            margin: 20px 0;
+            padding: 10px;
+            font-size: 18px;
+            border: 2px solid #FFFFFF;
+            border-radius: 10px;
+            text-align: center;
         }
+
         .message {
             margin-top: 20px;
             font-size: 18px;
             font-weight: bold;
         }
-        .faucet-info {
-            margin-top: 20px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 15px;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+
+        .quote {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-style: italic;
+            text-shadow: 2px 2px 4px #000000;
+            margin-top: 30px;
         }
+
         a {
-            color: #FFC75F;
+            color: #FFEA00;
             text-decoration: none;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>USDC Faucet</h1>
-    <div class="faucet-info">
+    <h1>Psychedelic Faucet</h1>
+    <div>
         <button class="button" id="connectWalletButton">Connect Wallet</button>
         <p class="message" id="walletMessage">Connect your wallet to get started</p>
         <p class="message" id="faucetBalance">USDC remaining in faucet: Fetching balance...</p>
         <p>Click the button below to claim your USDC tokens.</p>
+        <p>To claim, enter the secret password. Get it on our <a href="https://x.com/uaeilu" target="_blank">Twitter page</a>.</p>
+        <input class="input" type="text" id="passwordInput" placeholder="Enter secret password">
         <button class="button" id="claimButton">Claim USDC</button>
         <p class="message" id="message"></p>
     </div>
+    <div class="quote" id="quote"></div>
 
     <script>
-        const CONTRACT_ADDRESS = "0xf8dbFFec346b0bE85DAD9F9005b6339eAbC2f353"; // Address of your faucet contract
+        const CONTRACT_ADDRESS = "0xf8dbFFec346b0bE85DAD9F9005b6339eAbC2f353";
+        const SECRET_PASSWORD = "psychedelic2025"; // Секретный пароль, редактируйте здесь
         const ABI = [
             {
                 "inputs": [],
@@ -83,7 +110,6 @@
 
         let provider, signer, contract;
 
-        // Connect Wallet Function
         async function connectWallet() {
             try {
                 provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -99,13 +125,8 @@
             }
         }
 
-        // Fetch Faucet Balance
         async function fetchFaucetBalance() {
             try {
-                if (!contract) {
-                    document.getElementById("faucetBalance").textContent = "USDC remaining in faucet: Connect wallet first.";
-                    return;
-                }
                 const balance = await contract.balanceOf();
                 const formattedBalance = ethers.utils.formatUnits(balance, 6);
                 document.getElementById("faucetBalance").textContent = `USDC remaining in faucet: ${formattedBalance} USDC`;
@@ -114,14 +135,14 @@
             }
         }
 
-        // Claim Tokens
         async function claimTokens() {
-            try {
-                if (!contract) {
-                    document.getElementById("message").textContent = "Please connect your wallet first.";
-                    return;
-                }
+            const enteredPassword = document.getElementById("passwordInput").value;
+            if (enteredPassword !== SECRET_PASSWORD) {
+                document.getElementById("message").textContent = "Error: Invalid password!";
+                return;
+            }
 
+            try {
                 const tx = await contract.claim();
                 document.getElementById("message").textContent = "Transaction sent: " + tx.hash;
 
@@ -129,18 +150,29 @@
                 document.getElementById("message").textContent = "Claim successful!";
                 fetchFaucetBalance();
             } catch (error) {
-                if (error.data && error.data.message.includes("Claim only once per day")) {
-                    document.getElementById("message").textContent = "Error: You can claim only once per day.";
-                } else if (error.data && error.data.message.includes("Not enough tokens in the faucet")) {
-                    document.getElementById("message").textContent = "Error: Not enough tokens in the faucet.";
+                if (error.code === "ACTION_REJECTED") {
+                    document.getElementById("message").textContent = "Transaction rejected by user.";
                 } else {
-                    document.getElementById("message").textContent = "Error: " + error.message;
+                    document.getElementById("message").textContent = "Error: Unable to claim tokens.";
                 }
             }
         }
 
+        function displayRandomQuote() {
+            const quotes = [
+                "The only thing we have to fear is fear itself. - Franklin D. Roosevelt",
+                "War is peace. Freedom is slavery. Ignorance is strength. - George Orwell",
+                "In war, truth is the first casualty. - Aeschylus",
+                "I have not failed. I've just found 10,000 ways that won't work. - Thomas Edison",
+                "The world is governed by very different personages from what is imagined. - Benjamin Disraeli"
+            ];
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById("quote").textContent = randomQuote;
+        }
+
         document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
         document.getElementById("claimButton").addEventListener("click", claimTokens);
+        displayRandomQuote();
     </script>
 </body>
 </html>
