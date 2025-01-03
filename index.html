@@ -10,35 +10,28 @@
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
-        }
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px #000;
+            background-color: #1e3a8a;
+            color: #fff;
         }
         .button {
-            padding: 15px 30px;
-            font-size: 18px;
+            padding: 10px 20px;
+            font-size: 16px;
             color: white;
-            background-color: #ff5722;
+            background-color: #f97316;
             border: none;
-            border-radius: 8px;
+            border-radius: 5px;
             cursor: pointer;
-            margin: 10px;
-            transition: background-color 0.3s ease;
         }
         .button:hover {
-            background-color: #e64a19;
+            background-color: #ea580c;
         }
         .message {
             margin-top: 20px;
             font-size: 16px;
         }
-        .counter {
-            font-size: 1.5em;
-            margin: 20px 0;
+        .error {
+            color: #ff6b6b;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -46,15 +39,14 @@
     <h1>USDC Faucet</h1>
     <button class="button" id="connectWalletButton">Connect Wallet</button>
     <p class="message" id="walletMessage"></p>
-    <div class="counter">
-        <span>USDC remaining in faucet: </span><span id="faucetBalance">Loading...</span>
-    </div>
+    <p id="balanceMessage">USDC remaining in faucet: Loading...</p>
     <p>Click the button below to claim your USDC tokens.</p>
     <button class="button" id="claimButton">Claim USDC</button>
-    <p class="message" id="message"></p>
+    <p class="message error" id="message"></p>
 
     <script>
-        const CONTRACT_ADDRESS = "0xf8dbFFec346b0bE85DAD9F9005b6339eAbC2f353"; // Ваш адрес контракта
+        const CONTRACT_ADDRESS = "0xf8dbFFec346b0bE85DAD9F9005b6339eAbC2f353"; // Адрес контракта крана
+        const TOKEN_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Адрес токена USDC
         const ABI = [
             {
                 "inputs": [],
@@ -62,17 +54,19 @@
                 "outputs": [],
                 "stateMutability": "nonpayable",
                 "type": "function"
-            },
+            }
+        ];
+        const TOKEN_ABI = [
             {
-                "inputs": [],
-                "name": "getFaucetBalance",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
+                "constant": true,
+                "inputs": [{ name: "_owner", type: "address" }],
+                "name": "balanceOf",
+                "outputs": [{ name: "balance", type: "uint256" }],
                 "type": "function"
             }
         ];
 
-        let provider, signer, contract;
+        let provider, signer, contract, tokenContract;
 
         // Функция подключения кошелька
         async function connectWallet() {
@@ -81,23 +75,25 @@
                 await provider.send("eth_requestAccounts", []);
                 signer = provider.getSigner();
                 contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+                tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, provider);
 
                 const walletAddress = await signer.getAddress();
                 document.getElementById("walletMessage").textContent = `Connected: ${walletAddress}`;
-                updateFaucetBalance();
+
+                // Обновить баланс крана
+                updateBalance();
             } catch (error) {
                 document.getElementById("walletMessage").textContent = "Error connecting wallet: " + error.message;
             }
         }
 
         // Функция обновления баланса крана
-        async function updateFaucetBalance() {
+        async function updateBalance() {
             try {
-                const balance = await contract.getFaucetBalance();
-                const formattedBalance = ethers.utils.formatUnits(balance, 6); // USDC имеет 6 десятичных знаков
-                document.getElementById("faucetBalance").textContent = `${formattedBalance} USDC`;
+                const balance = await tokenContract.balanceOf(CONTRACT_ADDRESS);
+                document.getElementById("balanceMessage").textContent = `USDC remaining in faucet: ${ethers.utils.formatUnits(balance, 6)} USDC`;
             } catch (error) {
-                document.getElementById("faucetBalance").textContent = "Error fetching balance";
+                document.getElementById("balanceMessage").textContent = "USDC remaining in faucet: Error fetching balance";
             }
         }
 
@@ -110,14 +106,18 @@
                 }
 
                 const tx = await contract.claim();
-                document.getElementById("message").textContent = "Transaction sent: " + tx.hash;
+                document.getElementById("message").textContent = `Transaction sent: ${tx.hash}`;
 
                 await tx.wait();
                 document.getElementById("message").textContent = "Claim successful!";
-                updateFaucetBalance();
+
+                // Обновить баланс после успешного запроса
+                updateBalance();
             } catch (error) {
-                if (error.data && error.data.message.includes("Claim only once per day")) {
-                    document.getElementById("message").textContent = "Error: You have already claimed tokens today. Try again tomorrow.";
+                if (error.message.includes("Claim only once per day")) {
+                    document.getElementById("message").textContent = "Error: You can only claim once per day.";
+                } else if (error.message.includes("Not enough tokens in the faucet")) {
+                    document.getElementById("message").textContent = "Error: Not enough tokens in the faucet.";
                 } else {
                     document.getElementById("message").textContent = "Error: " + error.message;
                 }
@@ -126,13 +126,6 @@
 
         document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
         document.getElementById("claimButton").addEventListener("click", claimTokens);
-
-        // Инициализация баланса при загрузке
-        if (window.ethereum) {
-            connectWallet();
-        } else {
-            document.getElementById("walletMessage").textContent = "MetaMask not detected. Please install it.";
-        }
     </script>
 </body>
 </html>
