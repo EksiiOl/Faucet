@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDC Faucet</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>USDC Faucet</h1>
+    <button class="button" id="connectWalletButton">Connect Wallet</button>
+    <p class="message" id="walletMessage"></p>
+    <p>Click the button below to claim your USDC tokens.</p>
+    <button class="button" id="claimButton">Claim USDC</button>
+    <p class="message" id="message"></p>
+
+    <script>
+        const CONTRACT_ADDRESS = "0xe97B9E51c76fED789436eBD0e4198D744547E95"; // Ваш адрес контракта
+        const ABI = [
+            {
+                "inputs": [],
+                "name": "claim",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        let provider, signer, contract;
+
+        // Функция подключения кошелька
+        async function connectWallet() {
+            try {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+                const walletAddress = await signer.getAddress();
+                document.getElementById("walletMessage").textContent = `Connected: ${walletAddress}`;
+            } catch (error) {
+                document.getElementById("walletMessage").textContent = "Error connecting wallet: " + error.message;
+            }
+        }
+
+        // Функция для вызова claim
+        async function claimTokens() {
+            try {
+                if (!contract) {
+                    document.getElementById("message").textContent = "Please connect your wallet first.";
+                    return;
+                }
+
+                const tx = await contract.claim();
+                document.getElementById("message").textContent = "Transaction sent: " + tx.hash;
+
+                await tx.wait();
+                document.getElementById("message").textContent = "Claim successful!";
+            } catch (error) {
+                document.getElementById("message").textContent = "Error: " + error.message;
+            }
+        }
+
+        document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
+        document.getElementById("claimButton").addEventListener("click", claimTokens);
+    </script>
+</body>
+</html>
